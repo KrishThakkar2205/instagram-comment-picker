@@ -3,6 +3,7 @@
 // then sets a secure HttpOnly cookie and redirects back to the app.
 
 const fetch = require('node-fetch');
+const { getRedirectUri } = require('../_utils');
 
 const COOKIE_NAME = 'ig_token';
 const SIXTY_DAYS  = 60 * 24 * 60 * 60; // seconds
@@ -10,7 +11,7 @@ const SIXTY_DAYS  = 60 * 24 * 60 * 60; // seconds
 module.exports = async (req, res) => {
   const APP_ID       = process.env.INSTAGRAM_APP_ID;
   const APP_SECRET   = process.env.INSTAGRAM_APP_SECRET;
-  const REDIRECT_URI = process.env.REDIRECT_URI;
+  const REDIRECT_URI = getRedirectUri(req);
 
   const { code, error, error_description } = req.query;
 

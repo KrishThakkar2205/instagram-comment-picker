@@ -37,4 +37,17 @@ function requireToken(req, res) {
   return token;
 }
 
-module.exports = { parseCookies, getToken, requireToken };
+/**
+ * Get the exact REDIRECT_URI for Instagram OAuth.
+ * Uses process.env.REDIRECT_URI if defined, otherwise falls back to current request host.
+ */
+function getRedirectUri(req) {
+  if (process.env.REDIRECT_URI) {
+    return process.env.REDIRECT_URI.trim().replace(/\/$/, '');
+  }
+  const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
+  const proto = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
+  return `${proto}://${host}/api/auth/callback`;
+}
+
+module.exports = { parseCookies, getToken, requireToken, getRedirectUri };

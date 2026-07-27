@@ -1,13 +1,15 @@
 // api/auth/instagram.js
 // Redirects the user to Instagram's OAuth consent screen
 
-module.exports = (req, res) => {
-  const APP_ID      = process.env.INSTAGRAM_APP_ID;
-  const REDIRECT_URI = process.env.REDIRECT_URI;
+const { getRedirectUri } = require('../_utils');
 
-  if (!APP_ID || !REDIRECT_URI) {
+module.exports = (req, res) => {
+  const APP_ID       = process.env.INSTAGRAM_APP_ID;
+  const REDIRECT_URI = getRedirectUri(req);
+
+  if (!APP_ID) {
     return res.status(500).json({
-      error: 'Server not configured. Set INSTAGRAM_APP_ID and REDIRECT_URI in Vercel environment variables.',
+      error: 'Server not configured. Set INSTAGRAM_APP_ID in Vercel environment variables.',
     });
   }
 
