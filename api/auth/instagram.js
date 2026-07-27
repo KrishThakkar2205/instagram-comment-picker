@@ -19,6 +19,7 @@ module.exports = (req, res) => {
     'instagram_business_manage_comments',
     'instagram_business_content_publish',
     'instagram_business_manage_insights',
+    'instagram_manage_comments',
   ].join(',');
 
   const authUrl = new URL('https://api.instagram.com/oauth/authorize');
