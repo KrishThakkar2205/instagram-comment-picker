@@ -14,7 +14,7 @@ module.exports = async (req, res) => {
   if (!mediaId) return res.status(400).json({ error: 'mediaId is required' });
 
   const allComments = [];
-  const fields      = 'id,text,username,timestamp,like_count';
+  const fields      = 'id,text,username,timestamp,like_count,replies{id,text,username,timestamp,like_count}';
   let   url         = `https://graph.instagram.com/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
 
   try {
@@ -25,7 +25,33 @@ module.exports = async (req, res) => {
 
       if (data.error) return res.status(400).json({ error: data.error.message });
 
-      if (data.data && data.data.length) allComments.push(...data.data);
+      if (data.data && data.data.length) {
+        data.data.forEach(item => {
+          // Push top-level comment
+          allComments.push({
+            id:         item.id,
+            text:       item.text,
+            username:   item.username,
+            timestamp:  item.timestamp,
+            like_count: item.like_count,
+            is_reply:   false,
+          });
+
+          // Push any nested replies
+          if (item.replies && item.replies.data && item.replies.data.length) {
+            item.replies.data.forEach(reply => {
+              allComments.push({
+                id:         reply.id,
+                text:       reply.text,
+                username:   reply.username,
+                timestamp:  reply.timestamp,
+                like_count: reply.like_count,
+                is_reply:   true,
+              });
+            });
+          }
+        });
+      }
 
       // Move to next page or stop
       url = data.paging?.next || null;

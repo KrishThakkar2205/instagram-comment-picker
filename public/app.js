@@ -443,6 +443,7 @@ function buildCommentCard(comment, answer) {
       badges.push(`<span class="badge badge-no-answer">${comment._tagCount} tag${comment._tagCount !== 1 ? 's' : ''}</span>`);
     }
     if (comment._tagCount > 0) badges.push(`<span class="badge badge-tags">@tags: ${comment._tagCount}</span>`);
+    if (comment.is_reply) badges.push('<span class="badge badge-tags">Reply</span>');
   }
 
   let displayText = escapeHtml(text);
