@@ -1,0 +1,20 @@
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.production
+
+# Local token storage — not needed on Vercel
+config.json
+
+# Dependencies
+node_modules/
+
+# Old local server (replaced by Vercel serverless functions)
+server.js
+
+# Vercel build output
+.vercel/
+
+# OS files
+.DS_Store
+Thumbs.db

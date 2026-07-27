@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instagram Comment Picker | Vidhya Group</title>
+  <meta name="description" content="Pick winners from Instagram Reel comments — checks correct answer and 3 tagged friends." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── BACKGROUND BLOBS ── -->
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
+  <div class="bg-blob bg-blob-3"></div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       HEADER
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="2" width="20" height="20" rx="6" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.8"/>
+            <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor"/>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <span class="logo-title">Comment Picker</span>
+          <span class="logo-sub">by Vidhya Group</span>
+        </div>
+      </div>
+
+      <div class="header-right">
+        <!-- Connected account badge (shown after OAuth) -->
+        <div id="userBadge" class="user-badge hidden">
+          <div class="user-avatar-wrap">
+            <img id="userAvatar" src="" alt="Avatar" class="user-avatar-img hidden" />
+            <div id="userAvatarFallback" class="user-avatar-fallback">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            </div>
+          </div>
+          <div class="user-info">
+            <span id="userUsername" class="user-name">@username</span>
+            <span id="tokenExpiry" class="user-expiry"></span>
+          </div>
+          <button class="btn-disconnect" id="disconnectBtn" onclick="disconnectAccount()" title="Disconnect account">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14">
+              <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Settings button (shown when connected) -->
+        <button id="goMediaBtn" class="btn btn-ghost btn-sm hidden" onclick="showSection('media')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          My Posts
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       STEP INDICATOR
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <div class="steps-bar" id="stepsBar">
+    <div class="steps-inner">
+      <div class="step active" id="step1">
+        <div class="step-dot"><span>1</span></div>
+        <span class="step-label">Connect</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="step2">
+        <div class="step-dot"><span>2</span></div>
+        <span class="step-label">Pick Media</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="step3">
+        <div class="step-dot"><span>3</span></div>
+        <span class="step-label">Set Answer</span>
+      </div>
+      <div class="step-line"></div>
+      <div class="step" id="step4">
+        <div class="step-dot"><span>4</span></div>
+        <span class="step-label">Pick Winners</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION: CONNECT (Settings / Auth)
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <main id="section-connect" class="section active">
+    <div class="section-inner narrow">
+
+      <!-- Connected State -->
+      <div id="connectedCard" class="glass-card connect-card hidden">
+        <div class="connect-check">✅</div>
+        <h2 class="connect-title">Instagram Connected!</h2>
+        <div class="connected-profile" id="connectedProfile">
+          <div class="connected-avatar">
+            <img id="connectedAvatarImg" src="" alt="Profile" class="connected-avatar-img hidden" />
+            <div id="connectedAvatarFallback" class="connected-avatar-fallback">
+              <svg viewBox="0 0 24 24" fill="currentColor" width="40" height="40"><path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/></svg>
+            </div>
+          </div>
+          <div>
+            <div class="connected-username" id="connectedUsername">@username</div>
+            <div class="connected-expiry" id="connectedExpiry"></div>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-full" onclick="showSection('media')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+            <polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+          </svg>
+          Browse My Posts & Reels
+        </button>
+        <button class="btn btn-ghost btn-full" style="margin-top:10px" onclick="disconnectAccount()">
+          Disconnect Account
+        </button>
+      </div>
+
+      <!-- Not-Connected / Login State -->
+      <div id="loginCard" class="glass-card connect-card">
+        <!-- Big Instagram icon -->
+        <div class="ig-icon-big">
+          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="6" width="68" height="68" rx="20" stroke="url(#grad1)" stroke-width="4"/>
+            <circle cx="40" cy="40" r="16" stroke="url(#grad1)" stroke-width="4"/>
+            <circle cx="59" cy="21" r="5" fill="url(#grad1)"/>
+            <defs>
+              <linearGradient id="grad1" x1="6" y1="6" x2="74" y2="74" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#F58529"/>
+                <stop offset="0.4" stop-color="#DD2A7B"/>
+                <stop offset="0.8" stop-color="#8134AF"/>
+                <stop offset="1" stop-color="#515BD4"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+
+        <h1 class="connect-title">Connect Instagram</h1>
+        <p class="connect-desc">
+          Authorize this app with your Instagram <strong>Business or Creator</strong> account to browse your reels and pick winners from comments.
+        </p>
+
+        <!-- Auth alert: shown if OAuth returned error or success -->
+        <div id="authAlert" class="auth-alert hidden"></div>
+
+        <!-- App not configured warning -->
+        <div id="notConfiguredWarn" class="warn-box hidden">
+          <span class="warn-icon">⚙️</span>
+          <div>
+            <strong>App not configured yet</strong>
+            <p>Fill in your <code>INSTAGRAM_APP_ID</code> and <code>INSTAGRAM_APP_SECRET</code> in the <code>.env</code> file first, then restart the server.</p>
+          </div>
+        </div>
+
+        <!-- Main connect button -->
+        <a id="connectBtn" href="/api/auth/instagram" class="btn btn-ig btn-full">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+            <rect x="2" y="2" width="20" height="20" rx="6"/>
+            <circle cx="12" cy="12" r="4"/>
+            <circle cx="17.5" cy="6.5" r="1.2" fill="currentColor" stroke="none"/>
+          </svg>
+          Continue with Instagram
+        </a>
+
+        <!-- Env setup guide -->
+        <div class="setup-steps">
+          <h3 class="setup-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            One-time Setup Required
+          </h3>
+          <ol class="setup-list">
+            <li>
+              <span class="setup-num">1</span>
+              <div>
+                Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener">developers.facebook.com</a> → Create App → Add <strong>Instagram Platform</strong>
+              </div>
+            </li>
+            <li>
+              <span class="setup-num">2</span>
+              <div>
+                Under <strong>Instagram → API Setup with Instagram login</strong>, copy your <strong>App ID</strong> and <strong>App Secret</strong>
+              </div>
+            </li>
+            <li>
+              <span class="setup-num">3</span>
+              <div>
+                Add this to <strong>Valid OAuth Redirect URIs</strong>:<br/>
+                <code class="code-block">http://localhost:3000/auth/callback</code>
+              </div>
+            </li>
+            <li>
+              <span class="setup-num">4</span>
+              <div>
+                Open <code>.env</code> in this project folder and fill in:
+                <pre class="code-pre">INSTAGRAM_APP_ID=your_id_here
+INSTAGRAM_APP_SECRET=your_secret_here</pre>
+              </div>
+            </li>
+            <li>
+              <span class="setup-num">5</span>
+              <div>Restart the server with <code>npm start</code>, then click <strong>Continue with Instagram</strong> above</div>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION: MEDIA PICKER
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <main id="section-media" class="section">
+    <div class="section-inner">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Select a Reel or Post</h2>
+          <p class="section-sub">Click any post to load its comments and pick winners</p>
+        </div>
+        <div class="media-filters">
+          <button class="filter-btn active" id="filter-ALL"   onclick="setFilter('ALL')">All</button>
+          <button class="filter-btn"        id="filter-VIDEO" onclick="setFilter('VIDEO')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            Reels
+          </button>
+          <button class="filter-btn"        id="filter-IMAGE" onclick="setFilter('IMAGE')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            Photos
+          </button>
+        </div>
+      </div>
+
+      <div id="mediaGrid" class="media-grid">
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Loading your media…</p>
+        </div>
+      </div>
+
+      <div id="loadMoreWrap" class="load-more-wrap hidden">
+        <button class="btn btn-secondary" onclick="loadMoreMedia()">Load More</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ════════════════════════════════════════════════════════════════════════
+       SECTION: COMMENT PICKER
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <main id="section-picker" class="section">
+    <div class="section-inner">
+
+      <!-- Selected media preview bar -->
+      <div class="selected-media-bar" id="selectedMediaBar">
+        <img id="selectedThumb" src="" alt="Selected" class="selected-thumb" />
+        <div class="selected-info">
+          <span class="selected-type-badge" id="selectedTypeBadge">REEL</span>
+          <p class="selected-caption" id="selectedCaption">Caption…</p>
+        </div>
+        <div class="selected-meta" id="selectedMeta"></div>
+        <button class="btn btn-ghost btn-sm" onclick="showSection('media')">← Change</button>
+      </div>
+
+      <!-- Filter controls -->
+      <div class="glass-card picker-controls">
+        <div class="controls-row">
+          <div class="form-group flex-1">
+            <label class="form-label" for="answerInput">
+              Correct Answer
+              <span class="label-hint">case-insensitive · partial match</span>
+            </label>
+            <input type="text" id="answerInput" class="form-input" placeholder='e.g. "Vidhya" or "Option B"' />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="minTagsInput">Min. Tags</label>
+            <input type="number" id="minTagsInput" class="form-input short-input" value="3" min="0" max="20" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tag Rule</label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="distinctTagsCheck" checked />
+              <span class="checkbox-custom"></span>
+              Distinct people only
+            </label>
+          </div>
+        </div>
+        <div class="controls-actions">
+          <button class="btn btn-primary" id="fetchCommentsBtn" onclick="fetchAndAnalyze()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Fetch &amp; Analyze Comments
+          </button>
+          <span id="fetchStatus" class="fetch-status"></span>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="resultsSection" class="results-section hidden">
+        <div class="results-header">
+          <h2 class="section-title">Results</h2>
+          <div class="results-actions">
+            <button class="btn btn-ghost btn-sm" onclick="exportCSV()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              Export CSV
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="pickRandomWinner()">🎲 Random Winner</button>
+          </div>
+        </div>
+
+        <div class="stats-row" id="statsRow"></div>
+
+        <div class="tabs">
+          <button class="tab active" id="tab-winners"      onclick="switchTab('winners')">
+            <span class="tab-dot winners-dot"></span> Winners <span class="tab-count" id="count-winners">0</span>
+          </button>
+          <button class="tab" id="tab-partial"             onclick="switchTab('partial')">
+            <span class="tab-dot partial-dot"></span> Partial <span class="tab-count" id="count-partial">0</span>
+          </button>
+          <button class="tab" id="tab-disqualified"        onclick="switchTab('disqualified')">
+            <span class="tab-dot disqualified-dot"></span> Disqualified <span class="tab-count" id="count-disqualified">0</span>
+          </button>
+          <button class="tab" id="tab-all"                 onclick="switchTab('all')">
+            All <span class="tab-count" id="count-all">0</span>
+          </button>
+        </div>
+
+        <div id="commentsList" class="comments-list"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ── TOAST ── -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ── RANDOM WINNER MODAL ── -->
+  <div id="winnerModal" class="modal-overlay hidden" onclick="closeWinnerModal(event)">
+    <div class="modal-box winner-modal">
+      <div class="winner-confetti">🎉</div>
+      <h2 class="winner-title">🏆 Winner!</h2>
+      <div class="winner-username" id="winnerUsername">@username</div>
+      <p class="winner-comment" id="winnerComment"></p>
+      <button class="btn btn-primary" onclick="closeWinnerModal()">Close</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
