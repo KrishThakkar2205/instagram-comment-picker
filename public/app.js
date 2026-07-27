@@ -340,11 +340,19 @@ async function fetchAndAnalyze() {
   if (status) status.textContent = '';
 
   try {
+    console.log(`🔍 Requesting comments for Media ID: ${appState.selectedMedia.id}...`);
     const res  = await fetch(`/api/comments/${appState.selectedMedia.id}`);
     const data = await res.json();
+    console.log('📥 Raw Response from Server (/api/comments):', data);
+
     if (!res.ok) throw new Error(data.error || 'Failed to fetch comments');
 
     appState.allComments = data.comments || [];
+    console.log(`💬 Successfully fetched ${appState.allComments.length} comment(s):`);
+    appState.allComments.forEach((c, idx) => {
+      console.log(`   ${idx + 1}. @${c.username || 'unknown'}: "${c.text}" (Likes: ${c.like_count ?? 0}, Timestamp: ${c.timestamp})`);
+    });
+
     if (status) status.textContent = `Loaded ${appState.allComments.length} comments`;
 
     analyzeComments(answer, minTags, distinctOnly);
@@ -353,6 +361,7 @@ async function fetchAndAnalyze() {
     setStepActive(4);
     setTimeout(() => $('resultsSection')?.scrollIntoView({ behavior:'smooth', block:'start' }), 100);
   } catch (err) {
+    console.error('❌ Error fetching comments:', err);
     showToast(err.message, 'error');
     if (status) status.textContent = `Error: ${err.message}`;
   } finally {
@@ -380,6 +389,12 @@ function analyzeComments(answer, minTags, distinctOnly) {
   });
 
   appState.filteredResults = { winners, partial, disqualified };
+  console.log('📊 Filter Analysis Summary:', {
+    rule: { answer, minTags, distinctOnly },
+    winners: winners.length,
+    partial: partial.length,
+    disqualified: disqualified.length
+  });
 }
 
 // ════════════════════════════════════════════════════════════════════════════
