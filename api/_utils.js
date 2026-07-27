@@ -43,7 +43,7 @@ function requireToken(req, res) {
  */
 function getRedirectUri(req) {
   if (process.env.REDIRECT_URI) {
-    return process.env.REDIRECT_URI.trim().replace(/\/$/, '');
+    return process.env.REDIRECT_URI.trim().replace(/^["']|["']$/g, '').replace(/\/$/, '');
   }
   const host = req.headers['x-forwarded-host'] || req.headers.host || 'localhost:3000';
   const proto = req.headers['x-forwarded-proto'] || (host.includes('localhost') ? 'http' : 'https');
