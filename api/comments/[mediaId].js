@@ -14,10 +14,10 @@ module.exports = async (req, res) => {
   if (!mediaId) return res.status(400).json({ error: 'mediaId is required' });
 
   const allComments = [];
-  const fields      = 'id,text,username,timestamp,like_count';
+  const fields      = 'id,text,username,from,timestamp,like_count';
 
-  // Primary endpoint: Meta Graph API v20.0 (Official for Business/Creator accounts)
-  let url = `https://graph.facebook.com/v20.0/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
+  // Endpoint: graph.instagram.com (Required for Instagram Business Login Access Tokens)
+  let url = `https://graph.instagram.com/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
 
   try {
     let fetchCount = 0;
@@ -25,32 +25,22 @@ module.exports = async (req, res) => {
       const igRes = await fetch(url);
       const data  = await igRes.json();
 
-      console.log(`[Comments API Attempt ${++fetchCount}] URL: ${url.substring(0, 80)}... Response:`, JSON.stringify(data));
-
-      // If graph.facebook.com returned an error, try fallback to graph.instagram.com on first page
-      if (data.error && fetchCount === 1) {
-        console.log('Falling back to graph.instagram.com...');
-        url = `https://graph.instagram.com/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
-        const fallbackRes  = await fetch(url);
-        const fallbackData = await fallbackRes.json();
-        console.log('[Comments API Fallback Response]:', JSON.stringify(fallbackData));
-
-        if (fallbackData.error) {
-          return res.status(400).json({ error: fallbackData.error.message || 'Error fetching comments' });
-        }
-        if (fallbackData.data && fallbackData.data.length) {
-          allComments.push(...fallbackData.data);
-        }
-        url = fallbackData.paging?.next || null;
-        continue;
-      }
+      console.log(`[Comments API Fetch ${++fetchCount}] URL: ${url.substring(0, 80)}... Data Count: ${data.data ? data.data.length : 0}`);
 
       if (data.error) {
+        console.error('Comments API Error:', data.error);
         return res.status(400).json({ error: data.error.message || 'Error fetching comments' });
       }
 
       if (data.data && data.data.length) {
-        allComments.push(...data.data);
+        const normalized = data.data.map(item => ({
+          id:         item.id,
+          text:       item.text,
+          username:   item.username || item.from?.username || '',
+          timestamp:  item.timestamp,
+          like_count: item.like_count,
+        }));
+        allComments.push(...normalized);
       }
 
       // Move to next page or stop
