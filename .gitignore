@@ -11,6 +11,7 @@ node_modules/
 
 # Old local server (replaced by Vercel serverless functions)
 server.js
+server.local.js
 
 # Vercel build output
 .vercel/
