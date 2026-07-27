@@ -15,17 +15,38 @@ module.exports = async (req, res) => {
 
   const allComments = [];
   const fields      = 'id,text,username,timestamp,like_count';
-  let   url         = `https://graph.instagram.com/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
+
+  // Primary endpoint: Meta Graph API v20.0 (Official for Business/Creator accounts)
+  let url = `https://graph.facebook.com/v20.0/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
 
   try {
-    // Auto-paginate through ALL comment pages
+    let fetchCount = 0;
     while (url) {
       const igRes = await fetch(url);
       const data  = await igRes.json();
 
+      console.log(`[Comments API Attempt ${++fetchCount}] URL: ${url.substring(0, 80)}... Response:`, JSON.stringify(data));
+
+      // If graph.facebook.com returned an error, try fallback to graph.instagram.com on first page
+      if (data.error && fetchCount === 1) {
+        console.log('Falling back to graph.instagram.com...');
+        url = `https://graph.instagram.com/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
+        const fallbackRes  = await fetch(url);
+        const fallbackData = await fallbackRes.json();
+        console.log('[Comments API Fallback Response]:', JSON.stringify(fallbackData));
+
+        if (fallbackData.error) {
+          return res.status(400).json({ error: fallbackData.error.message || 'Error fetching comments' });
+        }
+        if (fallbackData.data && fallbackData.data.length) {
+          allComments.push(...fallbackData.data);
+        }
+        url = fallbackData.paging?.next || null;
+        continue;
+      }
+
       if (data.error) {
-        console.error('Instagram Comments API Error:', data.error);
-        return res.status(400).json({ error: data.error.message || 'Error fetching comments from Instagram' });
+        return res.status(400).json({ error: data.error.message || 'Error fetching comments' });
       }
 
       if (data.data && data.data.length) {
@@ -38,6 +59,7 @@ module.exports = async (req, res) => {
 
     res.json({ comments: allComments, total: allComments.length });
   } catch (err) {
+    console.error('Server comments error:', err);
     res.status(500).json({ error: err.message });
   }
 };
