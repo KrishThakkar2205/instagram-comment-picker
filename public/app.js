@@ -27,7 +27,24 @@ const $ = id => document.getElementById(id);
 document.addEventListener('DOMContentLoaded', async () => {
   const authResult = handleOAuthRedirect();  // read URL params first
   await checkConnectionStatus(authResult);   // then verify cookie with server
+  setupLiveReanalysis();
 });
+
+function setupLiveReanalysis() {
+  const reanalyze = () => {
+    if (!appState.allComments || appState.allComments.length === 0) return;
+    const answer       = $('answerInput')?.value.trim() || '';
+    const minTags      = parseInt($('minTagsInput')?.value || '0', 10);
+    const distinctOnly = $('distinctTagsCheck')?.checked ?? true;
+    analyzeComments(answer, minTags, distinctOnly);
+    renderResults();
+  };
+
+  $('answerInput')?.addEventListener('input', reanalyze);
+  $('minTagsInput')?.addEventListener('input', reanalyze);
+  $('minTagsInput')?.addEventListener('change', reanalyze);
+  $('distinctTagsCheck')?.addEventListener('change', reanalyze);
+}
 
 // ── Read ?auth= params from Instagram OAuth redirect ──────────────────────────
 function handleOAuthRedirect() {
