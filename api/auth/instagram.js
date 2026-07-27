@@ -13,10 +13,14 @@ module.exports = (req, res) => {
 
   const scopes = [
     'instagram_business_basic',
+    'instagram_business_manage_messages',
     'instagram_business_manage_comments',
+    'instagram_business_content_publish',
+    'instagram_business_manage_insights',
   ].join(',');
 
-  const authUrl = new URL('https://api.instagram.com/oauth/authorize');
+  const authUrl = new URL('https://www.instagram.com/oauth/authorize');
+  authUrl.searchParams.set('force_reauth',  'true');
   authUrl.searchParams.set('client_id',     APP_ID);
   authUrl.searchParams.set('redirect_uri',  REDIRECT_URI);
   authUrl.searchParams.set('scope',         scopes);
