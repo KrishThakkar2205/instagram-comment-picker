@@ -16,17 +16,33 @@ function parseCookies(req) {
 }
 
 /**
- * Get the ig_token from the HttpOnly cookie.
+ * Get the access token from the HttpOnly cookie.
+ * Supports "token" or "token|ig_account_id" format.
  * Returns the token string or null.
  */
 function getToken(req) {
   const cookies = parseCookies(req);
-  return cookies['ig_token'] || null;
+  const raw = cookies['ig_token'] || '';
+  if (!raw) return null;
+  const [token] = raw.split('|');
+  return token || null;
+}
+
+/**
+ * Get the Instagram Business Account ID from the HttpOnly cookie.
+ * Returns the account ID string or null.
+ */
+function getIgAccountId(req) {
+  const cookies = parseCookies(req);
+  const raw = cookies['ig_token'] || '';
+  if (!raw) return null;
+  const parts = raw.split('|');
+  return parts[1] || null;
 }
 
 /**
  * Return a 401 JSON response if no token is present.
- * Returns true if the check failed (caller should return immediately).
+ * Returns token if check passed, null if failed (caller should return immediately).
  */
 function requireToken(req, res) {
   const token = getToken(req);
@@ -50,4 +66,5 @@ function getRedirectUri(req) {
   return `${proto}://${host}/api/auth/callback`;
 }
 
-module.exports = { parseCookies, getToken, requireToken, getRedirectUri };
+module.exports = { parseCookies, getToken, getIgAccountId, requireToken, getRedirectUri };
+

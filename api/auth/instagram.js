@@ -1,5 +1,5 @@
 // api/auth/instagram.js
-// Redirects the user to Instagram's OAuth consent screen
+// Redirects the user to Facebook Login for Business consent screen for Instagram onboarding
 
 const { getRedirectUri } = require('../_utils');
 
@@ -9,24 +9,29 @@ module.exports = (req, res) => {
 
   if (!APP_ID) {
     return res.status(500).json({
-      error: 'Server not configured. Set INSTAGRAM_APP_ID in Vercel environment variables.',
+      error: 'Server not configured. Set INSTAGRAM_APP_ID in environment variables.',
     });
   }
 
   const scopes = [
-    'instagram_business_basic',
-    'instagram_business_manage_messages',
-    'instagram_business_manage_comments',
-    'instagram_business_content_publish',
-    'instagram_business_manage_insights',
+    'instagram_basic',
+    'instagram_content_publish',
+    'instagram_manage_comments',
+    'instagram_manage_insights',
+    'pages_show_list',
+    'pages_read_engagement',
   ].join(',');
 
-  const authUrl = new URL('https://api.instagram.com/oauth/authorize');
-  authUrl.searchParams.set('force_reauth',  'true');
+  const extras = JSON.stringify({ setup: { channel: 'IG_API_ONBOARDING' } });
+
+  const authUrl = new URL('https://www.facebook.com/v25.0/dialog/oauth');
   authUrl.searchParams.set('client_id',     APP_ID);
+  authUrl.searchParams.set('display',       'page');
+  authUrl.searchParams.set('extras',        extras);
   authUrl.searchParams.set('redirect_uri',  REDIRECT_URI);
-  authUrl.searchParams.set('scope',         scopes);
   authUrl.searchParams.set('response_type', 'code');
+  authUrl.searchParams.set('scope',         scopes);
 
   res.redirect(302, authUrl.toString());
 };
+

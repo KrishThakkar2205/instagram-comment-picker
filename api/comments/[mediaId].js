@@ -16,8 +16,8 @@ module.exports = async (req, res) => {
   const allComments = [];
   const fields      = 'id,text,username,from,timestamp,like_count';
 
-  // Endpoint: graph.instagram.com (Required for Instagram Business Login Access Tokens)
-  let url = `https://graph.instagram.com/v25.0/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
+  // Endpoint: graph.facebook.com (Required for Facebook Business Login Access Tokens)
+  let url = `https://graph.facebook.com/v25.0/${mediaId}/comments?fields=${fields}&limit=100&access_token=${token}`;
 
   try {
     let fetchCount = 0;

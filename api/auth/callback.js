@@ -1,6 +1,6 @@
 // api/auth/callback.js
-// Handles Instagram's OAuth redirect, exchanges code for a long-lived token,
-// then sets a secure HttpOnly cookie and redirects back to the app.
+// Handles Facebook Login for Business OAuth redirect, exchanges code for long-lived User Access Token,
+// retrieves connected Instagram Business Account, sets HttpOnly cookie, and redirects back to app.
 
 const fetch = require('node-fetch');
 const { getRedirectUri } = require('../_utils');
@@ -15,7 +15,7 @@ module.exports = async (req, res) => {
 
   const { code, error, error_description } = req.query;
 
-  // ── Instagram returned an error (user denied, etc.) ──────────────────────────
+  // ── User denied or Meta returned an error ────────────────────────────────────
   if (error) {
     const msg = encodeURIComponent(error_description || error || 'Authorization denied');
     return res.redirect(302, `/?auth=error&msg=${msg}`);
@@ -26,54 +26,74 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // ── Step 1: Exchange code → short-lived access token (1 hour) ────────────
-    const tokenRes = await fetch('https://api.instagram.com/oauth/access_token', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body:    new URLSearchParams({
-        client_id:     APP_ID,
-        client_secret: APP_SECRET,
-        grant_type:    'authorization_code',
-        redirect_uri:  REDIRECT_URI,
-        code,
-      }),
-    });
+    // ── Step 1: Exchange code → User access token ──────────────────────────────
+    const tokenRes = await fetch(
+      `https://graph.facebook.com/v25.0/oauth/access_token` +
+      `?client_id=${APP_ID}` +
+      `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}` +
+      `&client_secret=${APP_SECRET}` +
+      `&code=${code}`
+    );
     const tokenData = await tokenRes.json();
 
-    if (tokenData.error_type || tokenData.error_message || tokenData.error) {
-      throw new Error(tokenData.error_message || tokenData.error?.message || 'Token exchange failed');
+    if (tokenData.error) {
+      throw new Error(tokenData.error.message || 'Token exchange failed');
     }
 
     const shortLivedToken = tokenData.access_token;
 
-    // ── Step 2: Upgrade → long-lived token (60 days) ─────────────────────────
+    // ── Step 2: Exchange for long-lived User access token (~60 days) ───────────
     const longRes = await fetch(
-      `https://graph.instagram.com/access_token` +
-      `?grant_type=ig_exchange_token` +
+      `https://graph.facebook.com/v25.0/oauth/access_token` +
+      `?grant_type=fb_exchange_token` +
+      `&client_id=${APP_ID}` +
       `&client_secret=${APP_SECRET}` +
-      `&access_token=${shortLivedToken}`
+      `&fb_exchange_token=${shortLivedToken}`
     );
     const longData = await longRes.json();
 
-    if (longData.error) throw new Error(longData.error.message);
+    const longLivedToken = longData.access_token || shortLivedToken;
+    const expiresIn      = longData.expires_in || SIXTY_DAYS;
 
-    const longLivedToken = longData.access_token;
-    const expiresIn      = longData.expires_in || SIXTY_DAYS; // seconds
-
-    // ── Step 3: Fetch basic user info (to display in the UI) ─────────────────
-    const meRes  = await fetch(
-      `https://graph.instagram.com/me` +
-      `?fields=id,name,username,profile_picture_url` +
+    // ── Step 3: Fetch Pages and connected Instagram Business Account ──────────
+    const pagesRes = await fetch(
+      `https://graph.facebook.com/v25.0/me/accounts` +
+      `?fields=id,name,access_token,instagram_business_account` +
       `&access_token=${longLivedToken}`
     );
-    const meData = await meRes.json();
+    const pagesData = await pagesRes.json();
 
-    // ── Step 4: Set HttpOnly cookie ───────────────────────────────────────────
-    // HttpOnly  → JS cannot read the token (XSS safe)
-    // Secure    → only sent over HTTPS
-    // SameSite  → prevents CSRF
+    if (pagesData.error) {
+      throw new Error(pagesData.error.message || 'Failed to fetch Facebook pages');
+    }
+
+    const pages = pagesData.data || [];
+    const connectedPage = pages.find(p => p.instagram_business_account && p.instagram_business_account.id);
+
+    if (!connectedPage) {
+      throw new Error(
+        'No Facebook Page connected to an Instagram Business account was found. ' +
+        'Please ensure your Instagram account is converted to a Professional account and connected to a Facebook Page.'
+      );
+    }
+
+    const igAccountId = connectedPage.instagram_business_account.id;
+
+    // ── Step 4: Fetch Instagram Profile Info ───────────────────────────────────
+    let meData = {};
+    try {
+      const meRes = await fetch(
+        `https://graph.facebook.com/v25.0/${igAccountId}` +
+        `?fields=id,name,username,profile_picture_url` +
+        `&access_token=${longLivedToken}`
+      );
+      meData = await meRes.json();
+    } catch { /* ignore profile fetch errors */ }
+
+    // ── Step 5: Set HttpOnly Cookie (token|ig_account_id) ──────────────────────
+    const cookiePayload = encodeURIComponent(`${longLivedToken}|${igAccountId}`);
     const cookieValue = [
-      `${COOKIE_NAME}=${longLivedToken}`,
+      `${COOKIE_NAME}=${cookiePayload}`,
       `Max-Age=${expiresIn}`,
       `Path=/`,
       `HttpOnly`,
@@ -83,13 +103,13 @@ module.exports = async (req, res) => {
 
     res.setHeader('Set-Cookie', cookieValue);
 
-    // ── Step 5: Pass non-sensitive user info via URL params to the frontend ───
+    // ── Step 6: Pass user info via URL params to frontend ─────────────────────
     const username = encodeURIComponent(meData.username || '');
-    const name     = encodeURIComponent(meData.name     || '');
+    const name     = encodeURIComponent(meData.name     || connectedPage.name || '');
     const avatar   = encodeURIComponent(meData.profile_picture_url || '');
     const expiry   = encodeURIComponent(new Date(Date.now() + expiresIn * 1000).toISOString());
 
-    console.log(`✅ Connected: @${meData.username} | Expires: ${new Date(Date.now() + expiresIn * 1000).toISOString()}`);
+    console.log(`✅ Connected Instagram Business Account @${meData.username || igAccountId} via Facebook Page "${connectedPage.name}"`);
 
     res.redirect(302, `/?auth=success&username=${username}&name=${name}&avatar=${avatar}&expiry=${expiry}`);
 
@@ -99,3 +119,4 @@ module.exports = async (req, res) => {
     res.redirect(302, `/?auth=error&msg=${msg}`);
   }
 };
+

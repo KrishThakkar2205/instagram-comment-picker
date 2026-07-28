@@ -180,39 +180,33 @@
         <div class="setup-steps">
           <h3 class="setup-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-            One-time Setup Required
+            Facebook Login for Business Setup
           </h3>
           <ol class="setup-list">
             <li>
               <span class="setup-num">1</span>
               <div>
-                Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener">developers.facebook.com</a> → Create App → Add <strong>Instagram Platform</strong>
+                Go to <a href="https://developers.facebook.com" target="_blank" rel="noopener">developers.facebook.com</a> → Apps → Select your Business App
               </div>
             </li>
             <li>
               <span class="setup-num">2</span>
               <div>
-                Under <strong>Instagram → API Setup with Instagram login</strong>, copy your <strong>App ID</strong> and <strong>App Secret</strong>
+                Add products: <strong>Facebook Login for Business</strong>, <strong>Instagram → API setup with Facebook login</strong>
               </div>
             </li>
             <li>
               <span class="setup-num">3</span>
               <div>
-                Add this to <strong>Valid OAuth Redirect URIs</strong>:<br/>
-                <code class="code-block">http://localhost:3000/api/auth/callback</code>
+                Under <strong>Facebook Login for Business → Settings</strong>, add to <strong>Valid OAuth Redirect URIs</strong>:<br/>
+                <code class="code-block">https://vidhya.influrunner.com/api/auth/callback</code>
               </div>
             </li>
             <li>
               <span class="setup-num">4</span>
               <div>
-                Open <code>.env</code> in this project folder and fill in:
-                <pre class="code-pre">INSTAGRAM_APP_ID=your_id_here
-INSTAGRAM_APP_SECRET=your_secret_here</pre>
+                Ensure your Instagram account is converted to a <strong>Professional Account</strong> and connected to a <strong>Facebook Page</strong>.
               </div>
-            </li>
-            <li>
-              <span class="setup-num">5</span>
-              <div>Restart the server with <code>npm start</code>, then click <strong>Continue with Instagram</strong> above</div>
             </li>
           </ol>
         </div>

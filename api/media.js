@@ -1,18 +1,20 @@
 // api/media.js
-// Proxies GET /me/media to Instagram Graph API.
+// Proxies media queries to Facebook / Instagram Graph API.
 // Supports ?after= for pagination.
 
 const fetch = require('node-fetch');
-const { requireToken } = require('./_utils');
+const { requireToken, getIgAccountId } = require('./_utils');
 
 module.exports = async (req, res) => {
   const token = requireToken(req, res);
   if (!token) return;
+  const igAccountId = getIgAccountId(req);
 
   const { after } = req.query;
 
   const fields = 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count';
-  let url = `https://graph.instagram.com/me/media?fields=${fields}&limit=20&access_token=${token}`;
+  const target = igAccountId ? `https://graph.facebook.com/v25.0/${igAccountId}/media` : 'https://graph.facebook.com/v25.0/me/media';
+  let url = `${target}?fields=${fields}&limit=20&access_token=${token}`;
   if (after) url += `&after=${encodeURIComponent(after)}`;
 
   try {
@@ -24,3 +26,4 @@ module.exports = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+

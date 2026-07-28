@@ -2,22 +2,24 @@
 // Returns whether the user is currently connected (has a valid cookie).
 // The frontend calls this on load to decide which screen to show.
 
-const { getToken } = require('./_utils');
+const { getToken, getIgAccountId } = require('./_utils');
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
   const token = getToken(req);
+  const igAccountId = getIgAccountId(req);
 
   if (!token) {
     return res.json({ connected: false });
   }
 
-  // Optionally verify the token is still valid by pinging /me
   try {
-    const igRes = await fetch(
-      `https://graph.instagram.com/me?fields=id,username,profile_picture_url&access_token=${token}`
-    );
-    const data = await igRes.json();
+    const targetUrl = igAccountId
+      ? `https://graph.facebook.com/v25.0/${igAccountId}?fields=id,username,profile_picture_url&access_token=${token}`
+      : `https://graph.facebook.com/v25.0/me?fields=id,username,profile_picture_url&access_token=${token}`;
+
+    const igRes = await fetch(targetUrl);
+    const data  = await igRes.json();
 
     if (data.error) {
       // Token is invalid/expired — clear the cookie
@@ -34,3 +36,4 @@ module.exports = async (req, res) => {
     res.json({ connected: false, reason: err.message });
   }
 };
+
