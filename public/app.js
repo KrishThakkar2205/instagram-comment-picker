@@ -36,7 +36,8 @@ function setupLiveReanalysis() {
     const answer       = $('answerInput')?.value.trim() || '';
     const minTags      = parseInt($('minTagsInput')?.value || '0', 10);
     const distinctOnly = $('distinctTagsCheck')?.checked ?? true;
-    analyzeComments(answer, minTags, distinctOnly);
+    const combineUser  = $('combineUserCheck')?.checked ?? false;
+    analyzeComments(answer, minTags, distinctOnly, combineUser);
     renderResults();
   };
 
@@ -44,6 +45,7 @@ function setupLiveReanalysis() {
   $('minTagsInput')?.addEventListener('input', reanalyze);
   $('minTagsInput')?.addEventListener('change', reanalyze);
   $('distinctTagsCheck')?.addEventListener('change', reanalyze);
+  $('combineUserCheck')?.addEventListener('change', reanalyze);
 }
 
 // ── Read ?auth= params from Instagram OAuth redirect ──────────────────────────
@@ -355,7 +357,8 @@ async function fetchAndAnalyze() {
 
     if (status) status.textContent = `Loaded ${appState.allComments.length} comments`;
 
-    analyzeComments(answer, minTags, distinctOnly);
+    const combineUser = $('combineUserCheck')?.checked ?? false;
+    analyzeComments(answer, minTags, distinctOnly, combineUser);
     renderResults();
     $('resultsSection')?.classList.remove('hidden');
     setStepActive(4);
@@ -372,25 +375,79 @@ async function fetchAndAnalyze() {
   }
 }
 
-function analyzeComments(answer, minTags, distinctOnly) {
+function analyzeComments(answer, minTags, distinctOnly, combineUser = false) {
   const winners = [], partial = [], disqualified = [];
 
-  appState.allComments.forEach(comment => {
-    const text         = comment.text || '';
-    const answerMatch  = answer === '' || text.toLowerCase().includes(answer.toLowerCase());
-    const tagMatches   = text.match(/@[\w.]+/g) || [];
-    const tagCount     = distinctOnly ? new Set(tagMatches.map(t => t.toLowerCase())).size : tagMatches.length;
-    const tagsOk       = tagCount >= minTags;
-    const enriched     = { ...comment, _answerMatches: answerMatch, _tagsOk: tagsOk, _tagCount: tagCount };
+  if (combineUser) {
+    // Group comments by user (case-insensitive username)
+    const userGroups = new Map();
+    appState.allComments.forEach(comment => {
+      const username = (comment.username || 'unknown').toLowerCase();
+      if (!userGroups.has(username)) {
+        userGroups.set(username, {
+          username: comment.username || username,
+          texts: [],
+          comments: [],
+          timestamp: comment.timestamp
+        });
+      }
+      const group = userGroups.get(username);
+      group.texts.push(comment.text || '');
+      group.comments.push(comment);
+    });
 
-    if (answerMatch && tagsOk)      winners.push(enriched);
-    else if (answerMatch || tagsOk) partial.push(enriched);
-    else                            disqualified.push(enriched);
-  });
+    userGroups.forEach((group) => {
+      const combinedText = group.texts.join(' ');
+      const answerMatch  = answer === '' || combinedText.toLowerCase().includes(answer.toLowerCase());
+
+      const allTags = [];
+      group.texts.forEach(txt => {
+        const matches = txt.match(/@[\w.]+/g) || [];
+        allTags.push(...matches);
+      });
+
+      const tagCount = distinctOnly
+        ? new Set(allTags.map(t => t.toLowerCase())).size
+        : allTags.length;
+
+      const tagsOk   = tagCount >= minTags;
+
+      const enriched = {
+        id: group.comments[0].id,
+        username: group.username,
+        text: group.texts.join(' | '),
+        timestamp: group.timestamp,
+        like_count: group.comments.reduce((sum, c) => sum + (c.like_count || 0), 0),
+        _answerMatches: answerMatch,
+        _tagsOk: tagsOk,
+        _tagCount: tagCount,
+        _commentCount: group.comments.length,
+      };
+
+      if (answerMatch && tagsOk)      winners.push(enriched);
+      else if (answerMatch || tagsOk) partial.push(enriched);
+      else                            disqualified.push(enriched);
+    });
+
+  } else {
+    // Evaluate per individual comment
+    appState.allComments.forEach(comment => {
+      const text         = comment.text || '';
+      const answerMatch  = answer === '' || text.toLowerCase().includes(answer.toLowerCase());
+      const tagMatches   = text.match(/@[\w.]+/g) || [];
+      const tagCount     = distinctOnly ? new Set(tagMatches.map(t => t.toLowerCase())).size : tagMatches.length;
+      const tagsOk       = tagCount >= minTags;
+      const enriched     = { ...comment, _answerMatches: answerMatch, _tagsOk: tagsOk, _tagCount: tagCount };
+
+      if (answerMatch && tagsOk)      winners.push(enriched);
+      else if (answerMatch || tagsOk) partial.push(enriched);
+      else                            disqualified.push(enriched);
+    });
+  }
 
   appState.filteredResults = { winners, partial, disqualified };
   console.log('📊 Filter Analysis Summary:', {
-    rule: { answer, minTags, distinctOnly },
+    rule: { answer, minTags, distinctOnly, combineUser },
     winners: winners.length,
     partial: partial.length,
     disqualified: disqualified.length
